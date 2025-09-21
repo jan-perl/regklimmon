@@ -416,6 +416,31 @@ resbodgemplusklein_selbox= resbodgemplusklein_selbox.merge(hernjaargemklein_max.
 resbodgemplusklein_selbox ['Besparing'] = resbodgemplusklein_selbox ['Besparing'] + resbodgemplusklein_selbox ['laatsteklein']
 print(resbodgemplusklein_selbox)
 
+# +
+#maak nu zelf doelstellingen records
+
+# +
+doeljaar_gem =resbodgem_selbox.copy()
+doeljaar_gem ['Jaar'] = 2050
+doeljaar_gem ['VarName'] = 'ENeutr Doel'
+doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
+    doeljaar_gem ['Name']!= 'Wijk bij Duurstede' , 2030 )
+doeljaar_gem ['Besparing'] =0.5
+doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
+#overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
+doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
+doeljaar_gem['Target']=doeljaar_gem['Besparing']
+sdbb=doeljaar_gem.drop(['Besparing'], axis=1).copy()
+sdbb['Jaar']=2010
+sdbb['Target']=0
+sdbg=doeljaar_gem.drop(['Besparing'], axis=1).copy()
+sdbg['Jaar']=2010
+sdbg['Target']=1
+
+
+print (doeljaar_gem)
+# -
+
 gemopwsrt_selbox=pd.concat([ hernjaargem_selbox,
                             windtjbrutnormgem_selbox,
                            wind_twh_res_norm_selbox, zonpvtjgrootgem_selbox,
@@ -433,31 +458,8 @@ g.add_legend()
 figname = "../output/gemopwsrt"+'.png';
 g.savefig(figname,dpi=300) 
 
-# +
-#maak nu zelf doelstellingen records
-# -
-
-doeljaar_gem =resbodgem_selbox.copy()
-doeljaar_gem ['Jaar'] = 2050
-doeljaar_gem ['VarName'] = 'ENeutr Doel'
-doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
-    doeljaar_gem ['Name']!= 'Wijk bij Duurstede' , 2030 )
-doeljaar_gem ['Besparing'] =0.5
-doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
-#overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
-doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
-print (doeljaar_gem)
-
-# +
-doeljaar_gem['Target']=doeljaar_gem['Besparing']
-sdbb=doeljaar_gem.drop(['Besparing'], axis=1).copy()
-sdbb['Jaar']=2010
-sdbb['Target']=0
-sdbg=doeljaar_gem.drop(['Besparing'], axis=1).copy()
-sdbg['Jaar']=2010
-sdbg['Target']=1
-
-gemtotdat_selbox=pd.concat([totenjaargem_selbox, hernjaargem_selbox,resbodgemplusklein_selbox,
+gemtotdat_selbox=pd.concat([totenjaargem_selbox, hernjaargem_selbox,
+resbodgemplusklein_selbox,
                             sdbb,doeljaar_gem,sdbg],copy=False)
 g= sns.FacetGrid(col="Name",hue="VarName",data=gemtotdat_selbox,col_wrap=6,
                    sharex=True, sharey=True)
@@ -468,7 +470,6 @@ g.map(sns.lineplot,'Jaar',"Target",estimator=None,sort=False,alpha=0.5)
 g.add_legend()
 figname = "../output/gemtotdat"+'.png';
 g.savefig(figname,dpi=300, bbox_inches="tight")
-# -
 
 fig=selboxbasusg()
 datah=hernjaargem_selbox
