@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 # voorbeelden van https://klimaatmonitor.databank.nl/content/handleiding-open-data-service
 # -
 
-myapikey = subprocess.getoutput("cat rkm-api.key")
+myapikey = subprocess.getoutput("cat ../data/rkm-api.key")
 print(myapikey)
 baseurl='https://klimaatmonitor.databank.nl/jiveservices/odata'
 
@@ -124,10 +124,10 @@ print (GeoLevels_gem_selbox)
 print (getkkmo('/PeriodLevels'))
 
 #alleen eerste 1000 records getoond
-getkkmo('/Variables').to_excel('rkm-variables.xlsx')
+getkkmo('/Variables').to_excel('../intermediate/rkm-variables.xlsx')
 
 #print (getkkmo('/DataSources'))
-getkkmo('/DataSources').to_excel('rkm-datasources.xlsx')
+getkkmo('/DataSources').to_excel('../intermediate/rkm-datasources.xlsx')
 
 # +
 # werkt niet als 21 record terug komt print (getkkmo("/DataSources('cbsapi_83140ned')"))
@@ -264,7 +264,8 @@ def selboxbasusg():
     plt.title('Totaal energieverbruik 2010 per gemeente')
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(plaxkm))
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(plaxkm))
-selboxbasusg()
+    return fig
+r=selboxbasusg()
 # -
 
 refgem_selbox_df = pd.DataFrame(refgem_selbox)
@@ -291,7 +292,7 @@ selboxmergeon=['ExternalCode', 'GeoLevel','PeriodLevel']
 def getrelselbox(colnm,query,decr):
     thisdat=getkkmo(query)
     thisdat['VarName']=colnm
-    thisdat_selbox= thisdat.merge( refgem_selbox, how='left', selboxmergeon )
+    thisdat_selbox= thisdat.merge( refgem_selbox, how='left', on=selboxmergeon )
     thisdat_selbox= thisdat_selbox[thisdat_selbox['Name'].isna()==False].copy()
     thisdat_selbox['Jaar']= pd.to_numeric(thisdat_selbox['Period'],errors='coerce') 
     thisdat_selbox['Besparing']= (   
@@ -341,7 +342,7 @@ resbodgem_selbox= getrelselbox ('RES bod',
 #resbodgem_selbox['Besparing']=  resbodgem_selbox['Besparing']*3.6
 print (resbodgem_selbox)
 
-resbodgem_selbox =pd.read_excel('resbod_gem_aanp.xlsx')
+resbodgem_selbox =pd.read_excel('../data/resbod_gem_aanp.xlsx')
 
 # +
 #alleen grootschalige zon en wind vallen onder RES
@@ -415,17 +416,19 @@ print(resbodgemplusklein_selbox)
 gemopwsrt_selbox=pd.concat([ hernjaargem_selbox,
                             windtjbrutnormgem_selbox,
                            wind_twh_res_norm_selbox, zonpvtjgrootgem_selbox,
-                            hernjaargemklein_selbox
-                           ],copy=False).sort_values(['Name','Jaar'])
-#                           ,resbodgem_selbox],copy=False)
-g= sns.FacetGrid(col="Name",hue="VarName",data=gemopwsrt_selbox,col_wrap=4,
+                            hernjaargemklein_selbox,doeljaar_gem,sdbb  
+#                           ],copy=False).sort_values(['Name','Jaar'])
+                           ,resbodgem_selbox,resbodgemplusklein_selbox],copy=False)
+g= sns.FacetGrid(col="Name",hue="VarName",data=gemopwsrt_selbox,col_wrap=6,
                    sharex=True, sharey=True)
 g.map(sns.scatterplot,'Jaar',"Besparing",)
 g.set(ylim=(0, None))
 #g.map(sns.lineplot,'Jaar',"Target",orient='y')
-#g.map(sns.lineplot,'Jaar',"Target",estimator=None,sort=False,alpha=0.5)
+g.map(sns.lineplot,'Jaar',"Target",estimator=None,sort=False,alpha=0.5)
 #plt.ylabel('Energie [TJ]')
 g.add_legend()
+figname = "../output/gemopwsrt"+'.png';
+g.savefig(figname,dpi=300) 
 
 # +
 #maak nu zelf doelstellingen records
@@ -437,8 +440,8 @@ doeljaar_gem ['VarName'] = 'ENeutr Doel'
 doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
     doeljaar_gem ['Name']!= 'Wijk bij Duurstede' , 2030 )
 doeljaar_gem ['Besparing'] =0.5
-doeljaar_gem.to_excel('doeljaar_gem_auto.xlsx')
-doeljaar_gem=pd.read_excel('doeljaar_gem_aanp.xlsx')
+doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
+doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
 print (doeljaar_gem)
 
 # +
@@ -452,16 +455,18 @@ sdbg['Target']=1
 
 gemtotdat_selbox=pd.concat([totenjaargem_selbox, hernjaargem_selbox,resbodgemplusklein_selbox,
                             sdbb,doeljaar_gem,sdbg],copy=False)
-g= sns.FacetGrid(col="Name",hue="VarName",data=gemtotdat_selbox,col_wrap=4,
+g= sns.FacetGrid(col="Name",hue="VarName",data=gemtotdat_selbox,col_wrap=6,
                    sharex=True, sharey=True)
 g.map(sns.scatterplot,'Jaar',"Besparing")
 g.map(sns.lineplot,'Jaar',"Target",estimator=None,sort=False,alpha=0.5)
 #plt.ylabel('Energie [TJ]')
 #plt.title('Besparing en opwek per gemeente sinds 2010')
 g.add_legend()
+figname = "../output/gemtotdat"+'.png';
+g.savefig(figname,dpi=300, bbox_inches="tight")
 # -
 
-selboxbasusg()
+fig=selboxbasusg()
 datah=hernjaargem_selbox
 datab=totenjaargem_selbox
 yrmtr=100
@@ -483,6 +488,8 @@ plt.plot(xdat,ydat,label="Mogelijk pad")
 #sns.scatterplot(x='Jaar',y="Besparing",hue="Name",data=pltdat)
 plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 plt.title('Gemeentes naar energieneutraal vanaf 2010')
+figname = "../output/gemtotdatgeo"+'.png';
+fig.savefig(figname,dpi=300) 
 
 # +
 #en nu verbruik per sector
@@ -592,7 +599,7 @@ gemverbsrt_selbox=pd.concat([ totenjaargem_selbox,
     energie_verkeergem_selbox  ,energie_snelweggem_selbox  ,
                              doeljaar_gem,sdbg   ],copy=False).sort_values(['Name','Jaar'])
 #                           ,resbodgem_selbox],copy=False)
-g= sns.FacetGrid(col="Name",hue="VarName",data=gemverbsrt_selbox,col_wrap=4,
+g= sns.FacetGrid(col="Name",hue="VarName",data=gemverbsrt_selbox,col_wrap=6,
                    sharex=True, sharey=True)
 g.map(sns.scatterplot,'Jaar',"Besparing",)
 g.set(ylim=(0, None))
@@ -600,5 +607,7 @@ g.set(ylim=(0, None))
 g.map(sns.lineplot,'Jaar',"Target",estimator=None,sort=False,alpha=0.5)
 #plt.ylabel('Energie [TJ]')
 g.add_legend()
+figname = "../output/gemverbsrt"+'.png';
+g.savefig(figname,dpi=300, bbox_inches="tight")
 
 

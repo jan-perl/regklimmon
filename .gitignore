@@ -210,3 +210,5 @@ data/
 intermediate/
 output/
 src/RCS/
+*.ipynb
+
