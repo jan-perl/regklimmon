@@ -342,6 +342,9 @@ resbodgem_selbox= getrelselbox ('RES bod',
 #resbodgem_selbox['Besparing']=  resbodgem_selbox['Besparing']*3.6
 print (resbodgem_selbox)
 
+# +
+#overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
+    
 resbodgem_selbox =pd.read_excel('../data/resbod_gem_aanp.xlsx')
 
 # +
@@ -441,6 +444,7 @@ doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
     doeljaar_gem ['Name']!= 'Wijk bij Duurstede' , 2030 )
 doeljaar_gem ['Besparing'] =0.5
 doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
+#overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
 doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
 print (doeljaar_gem)
 
