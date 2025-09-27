@@ -14,6 +14,7 @@
 
 # +
 #werkboek met energie opbrengsten regeionale klimaat monitor
+#zet glb_regsel op de gewenste doorsnede
 # -
 
 import pandas as pd
@@ -116,18 +117,20 @@ some_string="""regsel,lev,minx,maxx,miny,maxy,sscale,gscale
 u16,gemeente,119000, 154000 , 438000 ,471000,0.5,1 
 randst,gemeente,79000, 174000, 398000 , 491000,0.1,1  
 nw,gemeente,10000 , 200000, 490000 , 700000,0.1,1  
-no,gemeente,170000 , 300000, 490000 ,700000,0.1,1 
+no,gemeente,170000, 300000, 490000 ,700000,0.1,1 
 mo,gemeente,119000, 300000 , 398000,491000,0.1,1 
-zo,gemeente,119000 , 300000 , 190000 ,400000,0.1,1 
-resregs,res,100, 300000,100,700000,0.02,5 
+zo,gemeente,119000, 300000 , 190000 ,400000,0.1,1 
+zw,gemeente,10000 , 200000 , 190000 ,400000,0.1,1 
+resregs,res,100   , 300000,100,700000,0.02,5 
 provs,provincie,100, 300000,100,700000,0.02,5
+nl,nederland,100   , 300000,100,700000,0.02,5
 """
     #read CSV string into pandas DataFrame    
 regiosels_df= pd.read_csv(io.StringIO(some_string), sep=",").set_index('regsel')
 
 glb_regsel='u16'
 #glb_regsel='resregs'
-glb_regsel='randst'
+glb_regsel='zo'
 my_regsel=glb_regsel
 
 def make_selbox(my_regsel):
@@ -475,7 +478,7 @@ hernjaargemklein_max= hernjaargemklein_selbox[['Name','Besparing']].groupby(["Na
 resbodgemplusklein_selbox= resbodgemplusklein_selbox.merge(hernjaargemklein_max.
             rename (columns={"Besparing": "laatsteklein"}) ,how='left',on='Name')
 resbodgemplusklein_selbox ['Besparing'] = resbodgemplusklein_selbox ['Besparing'] + resbodgemplusklein_selbox ['laatsteklein']
-print(resbodgemplusklein_selbox)
+resbodgemplusklein_selbox
 
 # +
 #maak nu zelf doelstellingen records
@@ -492,8 +495,8 @@ doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
 doeljaar_gem ['Besparing'] =0.99
 doeljaar_gem ['Besparing'] = doeljaar_gem ['Besparing'].where (
     doeljaar_gem ['Name'].isin([ 'Flevoland','Zeewolde','Noord-Holland Noord',
-            'Ommen',"Noordoostpolder" ,"Het Hogeland" ,"Ameland", "Schiermonnikoog"
-                                ,'Goeree-Overflakkee']), 0.5 )
+            'Ommen',"Noordoostpolder" ,"Het Hogeland" ,"Ameland", "Schiermonnikoog",
+            'Steenbergen',                    ,'Goeree-Overflakkee']), 0.5 )
 
 doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
 #overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
