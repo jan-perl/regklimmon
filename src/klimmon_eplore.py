@@ -72,33 +72,47 @@ vpd
 pval=pd.json_normalize(vpd)
 pval
 
-
 # +
+#definieer cache, zodat
+if not 'kkmocache' in globals():
+    print ("init kkmocache")
+    kkmocache= {}
 def getkkmo(src):
-    nextlinkstr='@odata.nextLink'    
-    url = baseurl+src
-    headers = {'apikey': myapikey}
-    getblk=True
-    pval=[]
-    while getblk:
-        r = requests.get(url, headers=headers)
-        if not r:
-            raise Exception(f"Non-success status code: {r.status_code}")
-        blkcont= pd.read_json(r.content)
-#        print (blkcont.columns)
-        vpd= blkcont['value']    
-        bval=pd.json_normalize(vpd)
-        bval=bval.drop(['@odata.type','@odata.id'], axis=1)
-        getblk= nextlinkstr in blkcont.columns
-        if getblk:
-#            bval=bval.drop(['@odata.nextLink'], axis=1)
-            url=blkcont['@odata.nextLink'] [0] 
-            print('getting next block '+url) 
-        pval.append(bval)
-#    print(pval)        
-    return pd.concat(pval)
+#    print (kkmocache)
+    if src in kkmocache.keys():
+#        print ("from cache")        
+        rv= kkmocache[src] 
+    else:
+        nextlinkstr='@odata.nextLink'    
+        url = baseurl+src
+        headers = {'apikey': myapikey}
+        getblk=True
+        pval=[]
+        while getblk:
+            r = requests.get(url, headers=headers)
+            if not r:
+                raise Exception(f"Non-success status code: {r.status_code}")
+            blkcont= pd.read_json(r.content)
+    #        print (blkcont.columns)
+            vpd= blkcont['value']    
+            bval=pd.json_normalize(vpd)
+            bval=bval.drop(['@odata.type','@odata.id'], axis=1)
+            getblk= nextlinkstr in blkcont.columns
+            if getblk:
+    #            bval=bval.drop(['@odata.nextLink'], axis=1)
+                url=blkcont['@odata.nextLink'] [0] 
+                print('getting next block '+url) 
+            pval.append(bval)
+    #    print(pval)        
+            rv= pd.concat(pval)
+            kkmocache[src]=rv #.to_dict()
+            rv= kkmocache[src]
+#            rv= pd.DataFrame.from_dict(kkmocache[src])
+#            print (kkmocache)
+    return rv
 
-print (getkkmo('/GeoLevels'))
+r=getkkmo('/GeoLevels')
+r
 # -
 
 #haal namen RES regios op
@@ -107,40 +121,57 @@ u16res='res_14'
 GeoLevels_res
 
 # +
-#utr left=113000, right=180000)
-#ax.set_ylim(bottom=480000, top=430000)
-#u10     ax.set_xlim(left=125000, right=152000)
-#   ax.set_ylim(bottom=442000, top=468000)
+#definieerde doelen sets
+
+doeljaarset_2030=[ 'Flevoland','Zeewolde',
+              'Stadskanaal', 'Borger-Odoorn'  ,   'Veere' ,   
+                                'Goeree-Overflakkee','Wijk bij Duurstede']
+#nooit op 1 of 0 zetten ivm sorteren in Y
+doelbesp_99 = [ 'Flevoland','Zeewolde','Noord-Holland Noord',
+            'Ommen',"Noordoostpolder" ,"Het Hogeland" ,"Ameland", "Schiermonnikoog",
+            'Steenbergen', 'Haarlemmermeer','Son en Breugel' , 
+            'Brummen','Duiven','Veere', 'Vlissingen' ,'Woensdrecht' ,
+            'Goeree-Overflakkee']
+
+#overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
+doeljaar_gem_aanp=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
+doeljaar_gem_aanp=doeljaar_gem_aanp[['GeoLevel','Name','Jaar','Besparing']] 
+#print (doeljaar_gem_aanp[doeljaar_gem_aanp['Jaar']==2050])
+doeljaarset_2050=list(doeljaar_gem_aanp[doeljaar_gem_aanp['Jaar']==2050]['Name'])
+doeljaarset_2050
 
 # +
 some_string="""regsel,lev,minx,maxx,miny,maxy,sscale,gscale
 u16,gemeente,119000, 154000 , 438000 ,471000,0.5,1 
-randst,gemeente,79000, 174000, 398000 , 491000,0.1,1  
+randst,gemeente,10000, 129000, 398000 , 495000,0.1,1  
 nw,gemeente,10000 , 200000, 490000 , 700000,0.1,1  
 no,gemeente,170000, 300000, 490000 ,700000,0.1,1 
-mo,gemeente,119000, 300000 , 398000,491000,0.1,1 
+mo,gemeente,149000, 300000 , 398000,491000,0.1,1 
 zo,gemeente,119000, 300000 , 190000 ,400000,0.1,1 
-zw,gemeente,10000 , 200000 , 190000 ,400000,0.1,1 
+zw,gemeente,10000 , 130000 , 190000 ,400000,0.1,1
+agem,gemeente,100   , 300000,100,700000,.1,1
 resregs,res,100   , 300000,100,700000,0.02,5 
 provs,provincie,100, 300000,100,700000,0.02,5
-nl,nederland,100   , 300000,100,700000,0.02,5
+nl,nederland,100   , 300000,100,700000,.002,1
 """
     #read CSV string into pandas DataFrame    
 regiosels_df= pd.read_csv(io.StringIO(some_string), sep=",").set_index('regsel')
 
 glb_regsel='u16'
 #glb_regsel='resregs'
-glb_regsel='zo'
 my_regsel=glb_regsel
 
 def make_selbox(my_regsel):
     param_regiosels=regiosels_df.to_dict('index')[my_regsel]
     GeoLevels_reg =getkkmo("/GeoLevels('"+param_regiosels['lev']+"')/GeoItems")
     GeoLevels_reg['GeoLevel'] =param_regiosels['lev']
-    return GeoLevels_reg [(GeoLevels_reg['PointX']> param_regiosels['minx'] ) &
+    s1= GeoLevels_reg [(GeoLevels_reg['PointX']> param_regiosels['minx'] ) &
                                     (GeoLevels_reg['PointX']< param_regiosels['maxx'] ) &
                                     (GeoLevels_reg['PointY']> param_regiosels['miny'] ) &
                                     (GeoLevels_reg['PointY']< param_regiosels['maxy'] ) ]
+    if (my_regsel=='agem'):
+        s1=s1[s1['Name'].isin(doeljaarset_2030+doeljaarset_2050+doelbesp_99)]
+    return s1
 GeoLevels_gem_selbox = make_selbox(glb_regsel)
 
 GeoLevels_gem_selbox
@@ -246,7 +277,7 @@ plt.title('Totaal energieverbruik en hernieuwbare energie U16')
 #gemeentebasis data
 glb_refyear='2010'
 def mkselboxref(gem_selbox,refyear):
-    thislev=gem_selbox.iloc[1]['GeoLevel']
+    thislev=gem_selbox.iloc[0]['GeoLevel']
 #    print(thislev)
     refentot=getkkmo("/Variables('energie_totaal_combi')/GeoLevels('"+thislev+"')/PeriodLevels('year')/Periods('"+
                    refyear+"')/Values")
@@ -308,7 +339,7 @@ def plaxkm(x, pos=None):
 def selboxbasusg(ref_selbox,my_regsel):
     param_regiosels=regiosels_df.to_dict('index')[my_regsel]
     print (param_regiosels)
-    thislev=ref_selbox.iloc[1]['GeoLevel']
+    thislev=ref_selbox.iloc[0]['GeoLevel']
 #    print(thislev)
     svals= ref_selbox['refwrd']*param_regiosels['sscale']
     fig, ax = plt.subplots(figsize=(12, 8))
@@ -350,7 +381,7 @@ gdf
 # +
 selboxmergeon=['ExternalCode', 'GeoLevel','PeriodLevel']
 def getrelselbox(colnm,query,decr):
-    thislev=refgem_selbox.iloc[1]['GeoLevel']
+    thislev=refgem_selbox.iloc[0]['GeoLevel']
     thisdat=getkkmo(re.sub('gemeente',thislev,query))
     thisdat['VarName']=colnm
     thisdat_selbox= thisdat.merge( refgem_selbox, how='left', on=selboxmergeon )
@@ -396,16 +427,25 @@ bodresgjr['VarName']='RES bod'
 bodresgjr
 
 #REs bod per gemeente: er worden wel records getoond, maar deze bevatten geen getallen
-resbodgem_selbox= getrelselbox ('RES bod',
+resbodgem_selbox_o= getrelselbox ('RES bod',
     "/Variables('res_bod')/GeoLevels('gemeente')/PeriodLevels('year')/Periods('2030')/Values",
                                    False)
 #resbodgem_selbox= resbodgem_selbox[ False== resbodgem_selbox['Besparing'] .isna()].copy()
 #resbodgem_selbox['Besparing']=  resbodgem_selbox['Besparing']*3.6
-resbodgem_selbox
+resbodgem_selbox_o
 
 #overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
-if glb_regsel=='u16': 
-    resbodgem_selbox =pd.read_excel('../data/resbod_gem_aanp.xlsx')
+resbodgem_aanp =pd.read_excel('../data/resbod_gem_aanp.xlsx')
+resbodgem_aanp=resbodgem_aanp[['GeoLevel','Name','Jaar','Besparing']] 
+resbodgem_aanp=resbodgem_aanp.rename(columns={'Jaar':'Jaar_aanp','Besparing':'Besparing_aanp' } )
+resbodgem_selbox = resbodgem_selbox_o.merge(resbodgem_aanp, on = ['GeoLevel','Name'], how='left')
+#de code hieronder KAN NIET kloppen: condities tegenovergesteld
+resbodgem_selbox['Jaar'] = resbodgem_selbox['Jaar_aanp'] .where(pd.isna(resbodgem_selbox['Jaar_aanp']),
+                           resbodgem_selbox['Jaar'])
+resbodgem_selbox['Besparing'] = resbodgem_selbox['Besparing_aanp'] .where(False==pd.isna(resbodgem_selbox['Besparing_aanp']),
+                           resbodgem_selbox['Besparing'])
+resbodgem_selbox=resbodgem_selbox.drop(['Jaar_aanp','Besparing_aanp' ],axis=1)
+resbodgem_selbox
 
 # +
 #alleen grootschalige zon en wind vallen onder RES
@@ -481,37 +521,30 @@ resbodgemplusklein_selbox ['Besparing'] = resbodgemplusklein_selbox ['Besparing'
 resbodgemplusklein_selbox
 
 # +
-#maak nu zelf doelstellingen records
-
-# +
 doeljaar_gem =resbodgem_selbox.copy()
 doeljaar_gem ['VarName'] = 'ENeutr Doel'
-doeljaar_gem ['Jaar'] = 2030
+doeljaar_gem ['Jaar'] = 2040
 doeljaar_gem ['Jaar'] = doeljaar_gem ['Jaar'].where (
-    doeljaar_gem ['Name'].isin([ 'Flevoland','Zeewolde',
-              'Stadskanaal', 'Borger-Odoorn'  ,       
-                                'Goeree-Overflakkee','Wijk bij Duurstede']), 2040 )
+    doeljaar_gem ['Name'].isin(doeljaarset_2030) == False, 2030 ).where (
+    doeljaar_gem ['Name'].isin(doeljaarset_2050) == False, 2050 )
 #nooit op 1 of 0 zetten ivm sorteren in Y
 doeljaar_gem ['Besparing'] =0.99
 doeljaar_gem ['Besparing'] = doeljaar_gem ['Besparing'].where (
-    doeljaar_gem ['Name'].isin([ 'Flevoland','Zeewolde','Noord-Holland Noord',
-            'Ommen',"Noordoostpolder" ,"Het Hogeland" ,"Ameland", "Schiermonnikoog",
-            'Steenbergen',                    ,'Goeree-Overflakkee']), 0.5 )
+    doeljaar_gem ['Name'].isin(doelbesp_99), 0.5 )
 
 doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
 #overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
-if glb_regsel=='u16':
-    doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
+#if glb_regsel=='u16':
+#    doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
 doeljaar_gem['Target']=doeljaar_gem['Besparing']
 sdbb=doeljaar_gem.drop(['Besparing'], axis=1).copy()
-sdbb['Jaar']=2010
+sdbb['Jaar']=int (glb_refyear)
 sdbb['Target']=0
 sdbg=doeljaar_gem.drop(['Besparing'], axis=1).copy()
-sdbg['Jaar']=2010
+sdbg['Jaar']=int (glb_refyear)
 sdbg['Target']=1
 
-
-doeljaar_gem
+#doeljaar_gem
 # -
 
 selbox_gridwrap=6
