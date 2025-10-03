@@ -134,8 +134,8 @@ doelbesp_99 = [ 'Flevoland','Zeewolde','Noord-Holland Noord',
             'Goeree-Overflakkee']
 
 #overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
-doeljaar_gem_aanp=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
-doeljaar_gem_aanp=doeljaar_gem_aanp[['GeoLevel','Name','Jaar','Besparing']] 
+doeljaar_gem_aanpo=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
+doeljaar_gem_aanp=doeljaar_gem_aanpo[['GeoLevel','Name','Jaar','Besparing']] 
 #print (doeljaar_gem_aanp[doeljaar_gem_aanp['Jaar']==2050])
 doeljaarset_2050=list(doeljaar_gem_aanp[doeljaar_gem_aanp['Jaar']==2050]['Name'])
 doeljaarset_2050
@@ -191,14 +191,19 @@ getkkmo('/DataSources').to_excel('../intermediate/rkm-datasources.xlsx')
 
 # +
 # werkt niet als 21 record terug komt print (getkkmo("/DataSources('cbsapi_83140ned')"))
+
+# +
+#deze stukken code zijn om ophalen data te debuggen
+#geen functie in nofmrale workflow
 # -
 
 url = baseurl+"/DataSources('cbsapi_83140ned')"
 headers = {'apikey': myapikey} 
 r = requests.get(url, headers=headers)
-print (r.content.decode('utf-8'))
+rp = r.content.decode('utf-8')
+#print (r.content.decode('utf-8'))
+#rp
 #vpd= pd.read_json(r.content.decode('utf-8'))['value']
-#print (vpd)
 
 url = baseurl+"/Variables('bevtot')/GeoLevels"
 headers = {'apikey': myapikey} 
@@ -208,9 +213,13 @@ print (r.content.decode('utf-8'))
 url = baseurl+"/Variables('zonpvtj')/GeoLevels"
 headers = {'apikey': myapikey} 
 r = requests.get(url, headers=headers)
-print (r.content.decode('utf-8'))
+rp= r.content.decode('utf-8')
+#print (r.content.decode('utf-8'))
+#rp
 
-print (getkkmo("/Variables('zonpv_twh_groot_res')/GeoLevels"))
+#reminder: welke geolevers zijn er voor zon
+r=getkkmo("/Variables('zonpv_twh_groot_res')/GeoLevels")
+r
 
 # +
 url = baseurl+"/Variables('cbsapi_70072ned')/GeoLevels('gemeente')/PeriodLevels('YEAR')/Periods('2016')/Values"
@@ -228,12 +237,12 @@ print (r.content.decode('utf-8'))
 baseyear='2010'
 r=getkkmo("/Variables('energie_totaal_combi')/GeoLevels('res')/PeriodLevels('year')/Periods('"+
                 baseyear+"')/Values")
-r
+#r
 
 baseyear='2010'
 r=getkkmo("/Variables('energie_totaal_combi')/GeoLevels('provincie')/PeriodLevels('year')/Periods('"+
                 baseyear+"')/Values")
-r
+#r
 
 r=getkkmo("/Variables('hern_tot')/GeoLevels('res')/PeriodLevels('year')/Periods('all')/Values")
 r
@@ -255,7 +264,8 @@ bodresjr['ValueString']= pd.to_numeric(bodresjr['ValueString'],errors='coerce')*
 bodresjr['VarName']='RES bod'
 bodresjr
 
-print (getkkmo("/Variables('res_pijplijn')/GeoLevels"))
+r=getkkmo("/Variables('res_pijplijn')/GeoLevels")
+r
 
 
 
@@ -269,6 +279,9 @@ sns.lineplot(x='Jaar',y="Value",hue="VarName",data=hernaand_u16)
 sns.scatterplot(x='Jaar',y="Value",hue="VarName",data=hernaand_u16)
 plt.ylabel('Energie [TJ]')
 plt.title('Totaal energieverbruik en hernieuwbare energie U16')
+
+# +
+##nu volt productie code
 
 # +
 #fijn, nu per gemeente
@@ -345,9 +358,11 @@ def selboxbasusg(ref_selbox,my_regsel):
     fig, ax = plt.subplots(figsize=(12, 8))
     plt.scatter(ref_selbox['PointX'],ref_selbox['PointY'],s=svals,alpha=.1) 
     for idx, row in pd.DataFrame(ref_selbox).iterrows():        
-        plt.text(row['PointX'],row['PointY'],
-                 row['Name']+'\n'+(str(row['refwrd'])),
-                 ha='right',va='center') 
+        ntrunc=row['Name']
+        if len(ntrunc) >15:
+            ntrunc=(ntrunc[0:10])+"..."
+        t1= ntrunc+'\n'+(str(row['refwrd']))
+        plt.text(row['PointX'],row['PointY'],t1 , ha='right',va='center') 
     #cx.add_basemap(ax, source= prov0)
     plt.title('Totaal energieverbruik 2010 per '+thislev)
     plt.gca().set_aspect('equal')
@@ -533,10 +548,12 @@ doeljaar_gem ['Besparing'] = doeljaar_gem ['Besparing'].where (
     doeljaar_gem ['Name'].isin(doelbesp_99), 0.5 )
 
 doeljaar_gem.to_excel('../intermediate/doeljaar_gem_auto.xlsx')
+#als u16: gebruik alleen aangeleverde data, niet voor andere gemeenten
 #overgetypt uit https://portal.ibabs.eu/Document/ListEntry/983e7c96-2e59-4bdf-b3e6-d2f059b2cb8d/e04a3258-ea5e-44b6-990b-53b81d16b14f
-#if glb_regsel=='u16':
-#    doeljaar_gem=pd.read_excel('../data/doeljaar_gem_aanp.xlsx')
+if glb_regsel=='u16':
+    doeljaar_gem=doeljaar_gem_aanpo
 doeljaar_gem['Target']=doeljaar_gem['Besparing']
+
 sdbb=doeljaar_gem.drop(['Besparing'], axis=1).copy()
 sdbb['Jaar']=int (glb_refyear)
 sdbb['Target']=0
@@ -583,6 +600,11 @@ g.savefig(figname,dpi=300, bbox_inches="tight")
 def pltpadongeo(ref_selbox,my_regsel, datah, datab,doeljaar): 
     param_regiosels=regiosels_df.to_dict('index')[my_regsel]
     fig=selboxbasusg(ref_selbox,glb_regsel)
+    for idx, row in pd.DataFrame(doeljaar).iterrows():
+        if not pd.isna(row['Jaar']):
+            t1= '  '+str(row['Besparing'])+'\n  \''+str(int(row['Jaar'])-2000)
+            plt.text(row['PointX'],row['PointY'],t1 , ha='left',va='center') 
+
     yrmtr=100*param_regiosels['gscale']
     rmtr=5000*param_regiosels['gscale']
     ctryr=2030
