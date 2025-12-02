@@ -296,7 +296,7 @@ def mkselboxref(gem_selbox,refyear):
     ref_selbox=ref_selbox.drop(['Period','ValueString','Description'], axis=1)
     return ref_selbox
 refresreg_selbox=  mkselboxref(make_selbox('resregs'),glb_refyear)      
-(refgem_selbox) 
+refresreg_selbox
 
 refgem_selbox=  mkselboxref(GeoLevels_gem_selbox,glb_refyear)  
 refgem_selbox
@@ -358,6 +358,26 @@ gdf = geopandas.GeoDataFrame(
 )
 print(gdf)
 
+# +
+#Nu relatieve waarden
+
+# +
+selboxmergeon=['ExternalCode', 'GeoLevel','PeriodLevel']
+def getvalselbox(colnm,query,decr):
+    thisdat=getkkmo(query)
+    thisdat['VarName']=colnm
+    thisdat_selbox= thisdat.merge( refgem_selbox, how='left', on=selboxmergeon )
+    thisdat_selbox= thisdat_selbox[thisdat_selbox['Name'].isna()==False].copy()
+    thisdat_selbox['Jaar']= pd.to_numeric(thisdat_selbox['Period'],errors='coerce') 
+    thisdat_selbox['Waarde']=   pd.to_numeric(thisdat_selbox['ValueString'],errors='coerce')
+    return (thisdat_selbox)
+
+eml_kb_aant_inr_selbox= getvalselbox ('eml_kb_aant_inr',
+    "/Variables('eml_kb_aant_inr')/GeoLevels('gemeente')/PeriodLevels('year')/Periods('all')/Values",
+                                   False)
+(eml_kb_aant_inr_selbox)
+# -
+
 #REs bod per gemeente: er worden wel records getoond, maar deze bevatten geen getallen
 resbodgem_selbox_o= getvalselbox ('RES bod',
     "/Variables('res_bod')/GeoLevels('gemeente')/PeriodLevels('year')/Periods('2030')/Values",
@@ -406,25 +426,6 @@ doeljaar_gem
 #pdf.plot()
 #plt.scatter(refgem_selbox_df.PointX,refgem_selbox_df.PointY,s=refgem_selbox_df.svals,alpha=.1) 
 #cx.add_basemap(ax, source= prov0)
-
-# +
-#Nu relatieve waarden
-
-# +
-selboxmergeon=['ExternalCode', 'GeoLevel','PeriodLevel']
-def getvalselbox(colnm,query,decr):
-    thisdat=getkkmo(query)
-    thisdat['VarName']=colnm
-    thisdat_selbox= thisdat.merge( refgem_selbox, how='left', on=selboxmergeon )
-    thisdat_selbox= thisdat_selbox[thisdat_selbox['Name'].isna()==False].copy()
-    thisdat_selbox['Jaar']= pd.to_numeric(thisdat_selbox['Period'],errors='coerce') 
-    thisdat_selbox['Waarde']=   pd.to_numeric(thisdat_selbox['ValueString'],errors='coerce')
-    return (thisdat_selbox)
-
-eml_kb_aant_inr_selbox= getvalselbox ('eml_kb_aant_inr',
-    "/Variables('eml_kb_aant_inr')/GeoLevels('gemeente')/PeriodLevels('year')/Periods('all')/Values",
-                                   False)
-(eml_kb_aant_inr_selbox)
 # -
 
 pltdat=eml_kb_aant_inr_selbox

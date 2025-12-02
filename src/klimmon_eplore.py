@@ -157,7 +157,7 @@ nl,nederland,100   , 300000,100,700000,.002,1
     #read CSV string into pandas DataFrame    
 regiosels_df= pd.read_csv(io.StringIO(some_string), sep=",").set_index('regsel')
 
-glb_regsel='u16'
+glb_regsel='provs'
 #glb_regsel='resregs'
 my_regsel=glb_regsel
 
